@@ -3,7 +3,8 @@ require 'threadsafe-lru/DoubleLinkedList'
 
 module ThreadSafeLru
   class LruCache
-    def initialize size, &block
+    def initialize size, opts = {}, &block
+      @opts=opts
       @size=size
       @cached_values={}
       @factory_block=block
@@ -50,6 +51,10 @@ module ThreadSafeLru
         while (size >= @size) do
           dropped=@recently_used.remove_last
           @cached_values.delete(dropped.value.key)
+
+          if @opts[:on_eviction]
+            @opts[:on_eviction].call(dropped.value.key, dropped.value.get_value)
+          end
         end
         node=Node.new key
         dll_node=@recently_used.add_to_head node
@@ -70,9 +75,9 @@ module ThreadSafeLru
 
     attr_reader :key
 
-    def get_value block
+    def get_value block = nil
       @lock.synchronize do
-        unless (@produced)
+        if !@produced && block
           @value=block.call @key
           @produced=true
         end

@@ -29,7 +29,17 @@ Or install it yourself as:
 	fib_cache.drop(42)
 	
 	# clear cache by dropping all cached values
-	fib_cache.clear()	
+	fib_cache.clear()
+	
+	# initialize cache with eviction handler
+	x2cache = ThreadSafeLru::LruCache.new 1, :on_eviction => Proc.new {|key, value|
+	  # value may be nil if it has never been used!
+	  puts "Evicted key #{key} with value #{value}"
+	}
+	x2cache.get(1) {|key| 2 }
+	# this will print "Evicted key 1 with value 2"
+	x2cache.get(2) {|key| 4 }
+	
 
 ## Thread safety
 

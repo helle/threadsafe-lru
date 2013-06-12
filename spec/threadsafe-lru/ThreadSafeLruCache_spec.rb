@@ -24,6 +24,25 @@ module ThreadSafeLru
         subject.get(:two){99}.should == 99
       end
 
+      it "should drop least used value and call eviction method" do
+        evicted_keys = []
+        evicted_values = []
+        cache = LruCache.new(3, :on_eviction => lambda {|key, value| evicted_keys << key; evicted_values << value} )
+
+        cache.get(:one){1}.should == 1
+        cache.get(:two){2}.should == 2
+        cache.get(:three){3}.should == 3
+        cache.get(:four){4}.should == 4
+
+        cache.get(:one){99}.should == 99
+        cache.get(:three){99}.should == 3
+        cache.get(:four){99}.should == 4
+        cache.get(:two){99}.should == 99
+        
+        evicted_keys.should eq [:one, :two, :one]
+        evicted_values.should eq [1, 2, 99]
+      end
+
       it "should not corrupt state in highly concurrent situation" do
 
         cache=subject
